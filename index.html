@@ -504,10 +504,20 @@ function avisoBackup(){
 // Junta o arquivo com o que já existe (não apaga nada; registros com o mesmo id não duplicam)
 function importar(f){if(!f)return;f.text().then(t=>{let o;try{o=JSON.parse(t);if(!o.dias)throw 0}catch{return toast("Arquivo inválido")}
   if(!confirm("Juntar este arquivo com os dados do app? Nada do que já existe é apagado."))return;
+  juntar(o);toast("Dados importados");aba="hoje";render()})}
+function juntar(o){
   if(o.perfil)S.perfil={...S.perfil,...o.perfil};if(o.agua)S.agua=o.agua;
   ["medidas","bio","fotos","minhas"].forEach(l=>{const ids=new Set((S[l]||[]).map(x=>x.id));S[l]=(S[l]||[]).concat((o[l]||[]).filter(x=>!x.id||!ids.has(x.id)))});
-  Object.entries(o.dias).forEach(([k,v])=>{if(!S.dias[k])S.dias[k]=v});
-  salva();toast("Dados importados");aba="hoje";render()})}
+  Object.entries(o.dias||{}).forEach(([k,v])=>{if(!S.dias[k])S.dias[k]=v});
+  salva()}
+// Link pessoal: .../#dados=<base64url do JSON>. O que vem depois do # não sai do aparelho.
+function dadosDoLink(){
+  const m=location.hash.match(/^#dados=([\w-]+)/);if(!m)return;
+  try{const b=m[1].replace(/-/g,"+").replace(/_/g,"/");
+    juntar(JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b),c=>c.charCodeAt(0)))));
+    aba="hoje";setTimeout(()=>toast("Seus dados foram carregados ✓"),300)}
+  catch{setTimeout(()=>toast("Link de dados inválido"),300)}
+  history.replaceState(null,"",location.pathname)}
 
 setInterval(()=>{const h=new Date().toTimeString().slice(0,5),k="metafit:avisou",ja=JSON.parse(localStorage.getItem(k)||"{}"),hoje=iso(new Date());
   S.lembretes.forEach(l=>{const id=hoje+l.h;if(l.h===h&&!ja[id]){ja[id]=1;localStorage.setItem(k,JSON.stringify(ja));
@@ -517,6 +527,7 @@ function toast(t){let e=document.getElementById("toast");if(!e){e=document.creat
   e.textContent=t;e.hidden=false;clearTimeout(e._t);e._t=setTimeout(()=>e.hidden=true,2200)}
 
 if("serviceWorker"in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("sw.js");
+dadosDoLink();
 render();
 </script>
 </body>
