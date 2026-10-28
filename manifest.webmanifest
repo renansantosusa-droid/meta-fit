@@ -3,7 +3,11 @@
   "short_name": "Meta Fit",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#5b5bf0",
+  "background_color": "#f3f3fb",
   "theme_color": "#5b5bf0",
-  "icons": [{ "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
 }
