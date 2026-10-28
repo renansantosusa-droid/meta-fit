@@ -1,0 +1,4 @@
+dados/
+.env
+gerar-inicio.cjs
+node_modules/
