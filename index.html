@@ -117,7 +117,7 @@ const salva=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{toast("Me
 const iso=d=>{const z=new Date(d);z.setMinutes(z.getMinutes()-z.getTimezoneOffset());return z.toISOString().slice(0,10)};
 const dt=k=>new Date(k+"T12:00");
 const fmt=(k,o)=>dt(k).toLocaleDateString("pt-BR",o);
-let dia=iso(new Date()),aba=S.perfil?"hoje":"ajustes",periodo="3m";
+let dia=iso(new Date()),aba="hoje",periodo="3m";
 const D=()=>S.dias[dia]||(S.dias[dia]={comidas:[],treinos:[],agua:0});
 const n0=v=>Math.round(v||0).toLocaleString("pt-BR");
 const n1=v=>(+v).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -260,7 +260,10 @@ function vai(a){aba=a;render();scrollTo(0,0)}
 function mudaDia(n){dia=somaDias(dia,n);if(dia>iso(new Date()))dia=iso(new Date());render()}
 
 function tHoje(){
-  const m=metas();if(!m)return `<div class="card"><h2>Vamos começar</h2><p class="mu">Preencha seus dados pra eu calcular sua meta.</p><br><button onclick="vai('ajustes')">Preencher</button></div>`;
+  const m=metas();if(!m)return `<div class="card"><h2>Já tem seus dados?</h2><p class="mu">Cole aqui o seu link pessoal (o que começa com renansantosusa-droid.github.io/meta-fit/#dados=…).</p>
+    <input id="lk" placeholder="Cole o link aqui" style="margin:10px 0"><button onclick="colarLink()">Carregar meus dados</button>
+    <p class="mu" style="margin-top:10px">Ou: ⚙️ Ajustes → Restaurar, com o arquivo de backup.</p></div>
+  <div class="card"><h2>Começar do zero</h2><p class="mu">Preencha seus dados pra eu calcular sua meta.</p><br><button class="sec" onclick="vai('ajustes')">Preencher</button></div>`;
   const d=D(),t=totais(d),lim=m.kcal+t.t,resta=lim-t.k;
   const mac=(nome,v,alvo,cor)=>`<div class="macro"><div style="font-size:12px;opacity:.85">${nome}</div><b>${n0(v)}<span style="opacity:.7;font-weight:400">/${n0(alvo)}g</span></b><div class="bar"><i style="width:${Math.min(100,v/alvo*100)}%;background:${v>alvo*1.1?"#fca5a5":cor}"></i></div>${v>alvo*1.1?`<div style="font-size:11px;opacity:.9">passou ${n0(v-alvo)}g</div>`:""}</div>`;
   const p=S.perfil,w=m.w,falta=w-p.meta,pctMeta=p.peso>p.meta?Math.max(0,Math.min(1,(p.peso-w)/(p.peso-p.meta))):0;
@@ -511,13 +514,16 @@ function juntar(o){
   Object.entries(o.dias||{}).forEach(([k,v])=>{if(!S.dias[k])S.dias[k]=v});
   salva()}
 // Link pessoal: .../#dados=<base64url do JSON>. O que vem depois do # não sai do aparelho.
-function dadosDoLink(){
-  const m=location.hash.match(/^#dados=([\w-]+)/);if(!m)return;
-  try{const b=m[1].replace(/-/g,"+").replace(/_/g,"/");
-    juntar(JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b),c=>c.charCodeAt(0)))));
-    aba="hoje";setTimeout(()=>toast("Seus dados foram carregados ✓"),300)}
-  catch{setTimeout(()=>toast("Link de dados inválido"),300)}
-  history.replaceState(null,"",location.pathname)}
+// O # fica no endereço de propósito: no iPhone o app da tela de início tem memória separada do Safari
+// e abre no endereço em que foi adicionado. Cada link só é aplicado uma vez por aparelho.
+function aplicarLink(txt){
+  const m=String(txt).match(/#dados=([\w-]+)/);if(!m)return false;
+  const marca="metafit:link:"+m[1].slice(-32);if(localStorage.getItem(marca)&&S.perfil)return false;
+  const b=m[1].replace(/-/g,"+").replace(/_/g,"/");
+  juntar(JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b),c=>c.charCodeAt(0)))));
+  localStorage.setItem(marca,"1");return true}
+function dadosDoLink(){try{if(aplicarLink(location.hash)){aba="hoje";setTimeout(()=>toast("Seus dados foram carregados ✓"),300)}}catch{setTimeout(()=>toast("Link de dados inválido"),300)}}
+function colarLink(){try{if(aplicarLink(document.getElementById("lk").value)){aba="hoje";render();toast("Seus dados foram carregados ✓")}else toast("Não achei os dados nesse link")}catch{toast("Link de dados inválido")}}
 
 setInterval(()=>{const h=new Date().toTimeString().slice(0,5),k="metafit:avisou",ja=JSON.parse(localStorage.getItem(k)||"{}"),hoje=iso(new Date());
   S.lembretes.forEach(l=>{const id=hoje+l.h;if(l.h===h&&!ja[id]){ja[id]=1;localStorage.setItem(k,JSON.stringify(ja));

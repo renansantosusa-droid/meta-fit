@@ -1,7 +1,6 @@
 {
   "name": "Meta Fit",
   "short_name": "Meta Fit",
-  "start_url": "./",
   "display": "standalone",
   "background_color": "#f3f3fb",
   "theme_color": "#5b5bf0",
