@@ -141,7 +141,9 @@ function metas(){
 function kcalTreino(t){const w=pesoAtual();let met=TREINOS[t.tipo]??5;
   // escada: ~0,045 kcal por kg a cada andar subido e ~0,015 a cada andar descido
   if(t.tipo==="Escada (prédio)")return w*(0.045*(t.sobe||0)+0.015*(t.desce||0));
-  if(t.tipo==="Corrida"){const v=t.km&&t.min?t.km/(t.min/60):9;met=Math.max(6,v)}return met*w*(t.min/60)}
+  if(t.tipo==="Corrida"){const v=t.km&&t.min?t.km/(t.min/60):9;met=Math.max(6,v)}
+  // caminhada/esteira: quanto mais rápido, mais gasta (5 km/h ≈ 3,5 MET; 6 km/h ≈ 4,3)
+  if(t.tipo==="Caminhada"&&t.km&&t.min)met=Math.max(2.5,0.8*t.km/(t.min/60)-0.5);return met*w*(t.min/60)}
 function totais(d){const c={k:0,p:0,c:0,g:0};(d?.comidas||[]).forEach(x=>{c.k+=x.k;c.p+=x.p;c.c+=x.c||0;c.g+=x.g||0});
   c.t=(d?.treinos||[]).reduce((a,x)=>a+x.kcal,0);c.min=(d?.treinos||[]).reduce((a,x)=>a+(+x.min||0),0);return c}
 // Meta de composição: gordura cai, massa magra sobe (pelos exames de bioimpedância)
@@ -483,7 +485,9 @@ function tAjustes(){
   </div>
   <div class="card"><h2>Backup</h2><p class="mu">Os dados ficam só neste aparelho. O app lembra de fazer backup toda semana.${S.ultimoBackup?` Último: <b>${fmt(S.ultimoBackup,{day:"2-digit",month:"2-digit"})}</b>.`:""} Pra trocar de celular ou de endereço: baixe aqui e use "Restaurar" no novo.</p>
     <div class="row" style="margin-top:8px"><button class="sec" onclick="exportar()">Baixar backup</button><button class="sec" onclick="imp.click()">Restaurar</button></div>
-    <input type="file" id="imp" accept=".json" hidden onchange="importar(this.files[0])"></div>`;
+    <input type="file" id="imp" accept=".json" hidden onchange="importar(this.files[0])"></div>
+  <div class="card"><h2>🔗 Colar link</h2><p class="mu">Quando o Claude te mandar um link com treino ou dados, cole aqui. Só soma, não apaga nada.</p>
+    <input id="lk" placeholder="Cole o link aqui" style="margin:10px 0"><button class="sec" onclick="colarLink()">Carregar</button></div>`;
 }
 function salvaPerfil(){const p={nome:pno.value.trim(),sexo:ps.value,nasc:pn.value,altura:+pa.value,peso:+pp.value,meta:+pm.value,metaGord:+pgo.value||null,ritmo:+pr.value,ativ:+pv.value};
   if(!p.altura||!p.peso||!p.meta)return toast("Preencha altura, peso e meta");
@@ -511,7 +515,8 @@ function importar(f){if(!f)return;f.text().then(t=>{let o;try{o=JSON.parse(t);if
 function juntar(o){
   if(o.perfil)S.perfil={...S.perfil,...o.perfil};if(o.agua)S.agua=o.agua;
   ["medidas","bio","fotos","minhas"].forEach(l=>{const ids=new Set((S[l]||[]).map(x=>x.id));S[l]=(S[l]||[]).concat((o[l]||[]).filter(x=>!x.id||!ids.has(x.id)))});
-  Object.entries(o.dias||{}).forEach(([k,v])=>{if(!S.dias[k])S.dias[k]=v});
+  Object.entries(o.dias||{}).forEach(([k,v])=>{const d=S.dias[k];if(!d)return S.dias[k]=v;
+    ["comidas","treinos"].forEach(l=>{const ids=new Set((d[l]||[]).map(x=>x.id));d[l]=(d[l]||[]).concat((v[l]||[]).filter(x=>!ids.has(x.id)))})});
   salva()}
 // Link pessoal: .../#dados=<base64url do JSON>. O que vem depois do # não sai do aparelho.
 // O # fica no endereço de propósito: no iPhone o app da tela de início tem memória separada do Safari
